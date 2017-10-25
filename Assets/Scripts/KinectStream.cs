@@ -1,7 +1,5 @@
 using UnityEngine;
 
 public class KinectStream : MonoBehaviour {
-  public delegate void JointDataReceivedDelegate (float[] joints);
-
-  public JointDataReceivedDelegate OnJointDataReceived;
+  public float[] JointData { get; protected set; }
 }
