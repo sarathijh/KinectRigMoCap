@@ -18,7 +18,8 @@ public class KinectRigAnimator : MonoBehaviour {
   static Joint[] Joints = (Joint[])Enum.GetValues(typeof(Joint));
 
 
-  public KinectStream kinectStream;
+  public Transform kinectReference;
+  KinectStream kinectStream;
 
   public Transform LeftShoulderPoint;
   public Transform LeftElbowPoint;
@@ -71,6 +72,7 @@ public class KinectRigAnimator : MonoBehaviour {
 
   Dictionary<Joint, Vector3> jointPositions;
   Dictionary<Joint, float> modelBoneLengths;
+  Vector3 Origin;
 
 
   void Start() {
@@ -78,6 +80,8 @@ public class KinectRigAnimator : MonoBehaviour {
     foreach (var j in Joints) {
       jointPositions[j] = Vector3.zero;
     }
+
+    kinectStream = kinectReference.GetComponent<KinectStream>();
 
     animator = GetComponent<Animator>();
 
@@ -119,6 +123,8 @@ public class KinectRigAnimator : MonoBehaviour {
     modelBoneLengths[Joint.HipRight] = (Hips.position - RightUpperLeg.position).magnitude;
     modelBoneLengths[Joint.KneeRight] = (RightUpperLeg.position - RightLowerLeg.position).magnitude;
     modelBoneLengths[Joint.AnkleRight] = (RightLowerLeg.position - RightFoot.position).magnitude;
+
+    Origin = Hips.position - transform.position;
   }
 
 
@@ -130,7 +136,7 @@ public class KinectRigAnimator : MonoBehaviour {
 
 
   Vector3 GetJoint(Joint joint) {
-    return jointPositions[joint];//Hips.position + (jointPositions[joint] - hips) * modelBoneLengths[joint] / kinectBoneLengths[joint];
+    return Vector3.Scale(kinectReference.TransformPoint(jointPositions[joint]), new Vector3(-1, 1, 1));//Hips.position + (jointPositions[joint] - hips) * modelBoneLengths[joint] / kinectBoneLengths[joint];
   }
 
 
@@ -144,7 +150,8 @@ public class KinectRigAnimator : MonoBehaviour {
   void OnAnimatorIK(int layerIndex) {
     UpdateJoints();
 
-    transform.rotation = Quaternion.LookRotation(Vector3.Cross(jointPositions[Joint.HipRight] - jointPositions[Joint.HipLeft], Vector3.up));
+        //transform.rotation = Quaternion.LookRotation(Vector3.Cross(jointPositions[Joint.HipRight] - jointPositions[Joint.HipLeft], Vector3.up));
+        transform.position = Origin + (GetJoint(Joint.HipLeft) + GetJoint(Joint.HipRight)) / 2;
 
     LeftShoulderPoint.position = Hips.position + modelBoneLengths[Joint.Neck] * (GetJoint(Joint.Neck) - (GetJoint(Joint.HipLeft) + GetJoint(Joint.HipRight)) / 2).normalized +
         modelBoneLengths[Joint.ShoulderLeft] * (GetJoint(Joint.ShoulderLeft) - GetJoint(Joint.Neck)).normalized;
@@ -177,26 +184,26 @@ public class KinectRigAnimator : MonoBehaviour {
     animator.SetIKPosition(AvatarIKGoal.LeftHand, LeftWristPoint.position);
     animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1);
 
-    //animator.SetIKHintPosition(AvatarIKHint.LeftElbow, LeftElbowPoint.position);
-    //animator.SetIKHintPositionWeight(AvatarIKHint.LeftElbow, 0.5f);
+    animator.SetIKHintPosition(AvatarIKHint.LeftElbow, LeftElbowPoint.position);
+    animator.SetIKHintPositionWeight(AvatarIKHint.LeftElbow, 0.5f);
 
     animator.SetIKPosition(AvatarIKGoal.RightHand, RightWristPoint.position);
     animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 1);
 
-    //animator.SetIKHintPosition(AvatarIKHint.RightElbow, RightElbowPoint.position);
-    //animator.SetIKHintPositionWeight(AvatarIKHint.RightElbow, 0.5f);
+    animator.SetIKHintPosition(AvatarIKHint.RightElbow, RightElbowPoint.position);
+    animator.SetIKHintPositionWeight(AvatarIKHint.RightElbow, 0.5f);
 
     animator.SetIKPosition(AvatarIKGoal.LeftFoot, LeftAnklePoint.position);
     animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, 1);
 
-    //animator.SetIKHintPosition(AvatarIKHint.LeftKnee, LeftKneePoint.position);
-    //animator.SetIKHintPositionWeight(AvatarIKHint.LeftKnee, 0.5f);
+    animator.SetIKHintPosition(AvatarIKHint.LeftKnee, LeftKneePoint.position);
+    animator.SetIKHintPositionWeight(AvatarIKHint.LeftKnee, 0.5f);
 
     animator.SetIKPosition(AvatarIKGoal.RightFoot, RightAnklePoint.position);
     animator.SetIKPositionWeight(AvatarIKGoal.RightFoot, 1);
 
-    //animator.SetIKHintPosition(AvatarIKHint.RightKnee, RightKneePoint.position);
-    //animator.SetIKHintPositionWeight(AvatarIKHint.RightKnee, 0.5f);
+    animator.SetIKHintPosition(AvatarIKHint.RightKnee, RightKneePoint.position);
+    animator.SetIKHintPositionWeight(AvatarIKHint.RightKnee, 0.5f);
   }
 
 

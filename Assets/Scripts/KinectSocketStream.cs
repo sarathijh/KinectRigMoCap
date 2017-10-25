@@ -17,7 +17,9 @@ public class KinectSocketStream : KinectStream {
 
   void Start() {
     udpClient = new UdpClient(Port);
-    ipEndPoint = new IPEndPoint(IPAddress.Parse(IP), Port);
+    ipEndPoint = new IPEndPoint(IPAddress.Any, Port);
+
+    JointData = new float[25*3];
 
     thread = new Thread(new ThreadStart(ReadJointData));
     thread.IsBackground = true;
@@ -28,10 +30,9 @@ public class KinectSocketStream : KinectStream {
   void ReadJointData() {
     try {
       while (!threadDone) {
-        // Each coord is a 32 bit float
-        Byte[] buffer = udpClient.Receive(ref ipEndPoint);
-        JointData = new float[buffer.Length / 4];
-        Buffer.BlockCopy(buffer, 0, JointData, 0, buffer.Length);
+                // Each coord is a 32 bit float
+                Byte[] buffer = udpClient.Receive(ref ipEndPoint);
+                Buffer.BlockCopy(buffer, 0, JointData, 0, buffer.Length);
       }
     } catch (Exception e) {
       Debug.Log("UDP Client Error: " + e);
