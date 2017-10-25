@@ -11,34 +11,30 @@ public class KinectFileStream : KinectStream {
 
 
   void Start() {
-    jointDataMatcher = new Regex("(?:\\((-?\\d+\\.\\d+),\\s*(-?\\d+\\.\\d+),\\s*(-?\\d+\\.\\d+)\\)\\s*){25}");
+    jointDataMatcher = new Regex("(?<x>-?\\d+(?:\\.\\d+)?),\\s*(?<y>-?\\d+(?:\\.\\d+)?),\\s*(?<z>-?\\d+(?:\\.\\d+)?)");
 
     var splitFile = new string[] { "\r\n", "\r", "\n" };
     lines = File.text.Split(splitFile, StringSplitOptions.None);
     i = 0;
+
+    JointData = new float[25 * 3];
   }
 
 
   void Update() {
     if (i < lines.Length) {
-      float[] joints = new float[25 * 3];
-
       string line = lines[i]; ++i;
-      Match match = jointDataMatcher.Match(line);
-
-      int g = -1;
-      foreach (Group group in match.Groups) {
-        if (g >= 0 && g < 25) {
-          int c = 0;
-          foreach (Capture cap in group.Captures) {
-            joints[c * 3 + g] = float.Parse(cap.ToString());
-            ++c;
-          }
+      MatchCollection matches = jointDataMatcher.Matches(line);
+      int g = 0;
+      foreach(Match match in matches) {
+        if (g >= 25) {
+          break;
         }
+        JointData[g * 3 + 0] = float.Parse(match.Groups["x"].Value);
+        JointData[g * 3 + 1] = float.Parse(match.Groups["y"].Value);
+        JointData[g * 3 + 2] = float.Parse(match.Groups["z"].Value);
         ++g;
       }
-
-      OnJointDataReceived(joints);
     }
   }
 }
