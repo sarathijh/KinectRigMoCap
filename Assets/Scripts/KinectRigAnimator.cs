@@ -72,7 +72,8 @@ public class KinectRigAnimator : MonoBehaviour {
 
   Dictionary<Joint, Vector3> jointPositions;
   Dictionary<Joint, float> modelBoneLengths;
-  Vector3 Origin;
+  Vector3 HipOffset;
+  float GroundVelocity = 0;
 
 
   void Start() {
@@ -124,7 +125,7 @@ public class KinectRigAnimator : MonoBehaviour {
     modelBoneLengths[Joint.KneeRight] = (RightUpperLeg.position - RightLowerLeg.position).magnitude;
     modelBoneLengths[Joint.AnkleRight] = (RightLowerLeg.position - RightFoot.position).magnitude;
 
-    Origin = Hips.position - transform.position;
+    HipOffset = Hips.position - transform.position;
   }
 
 
@@ -150,8 +151,13 @@ public class KinectRigAnimator : MonoBehaviour {
   void OnAnimatorIK(int layerIndex) {
     UpdateJoints();
 
-        //transform.rotation = Quaternion.LookRotation(Vector3.Cross(jointPositions[Joint.HipRight] - jointPositions[Joint.HipLeft], Vector3.up));
-        transform.position = Origin + (GetJoint(Joint.HipLeft) + GetJoint(Joint.HipRight)) / 2;
+    Vector3 rot = Vector3.Cross(GetJoint(Joint.HipLeft) - GetJoint(Joint.HipRight), Vector3.up);
+    if (rot == Vector3.zero) {
+      transform.rotation = kinectReference.rotation;
+    } else {
+      transform.rotation = Quaternion.LookRotation(rot) * kinectReference.rotation;
+    }
+    Vector3 pos = (GetJoint(Joint.HipLeft) + GetJoint(Joint.HipRight)) / 2;
 
     LeftShoulderPoint.position = Hips.position + modelBoneLengths[Joint.Neck] * (GetJoint(Joint.Neck) - (GetJoint(Joint.HipLeft) + GetJoint(Joint.HipRight)) / 2).normalized +
         modelBoneLengths[Joint.ShoulderLeft] * (GetJoint(Joint.ShoulderLeft) - GetJoint(Joint.Neck)).normalized;
@@ -170,16 +176,25 @@ public class KinectRigAnimator : MonoBehaviour {
     LeftHipPoint.position = Hips.position +
       modelBoneLengths[Joint.HipLeft] * (GetJoint(Joint.HipLeft) - GetJoint(Joint.HipRight)).normalized;
     LeftKneePoint.position = LeftHipPoint.position +
-      modelBoneLengths[Joint.KneeLeft] * (GetJoint(Joint.KneeLeft) - GetJoint(Joint.HipLeft)).normalized;
+      modelBoneLengths[Joint.KneeLeft] * 1.2f * (GetJoint(Joint.KneeLeft) - GetJoint(Joint.HipLeft)).normalized;
     LeftAnklePoint.position = LeftKneePoint.position +
-      modelBoneLengths[Joint.AnkleLeft] * (GetJoint(Joint.AnkleLeft) - GetJoint(Joint.KneeLeft)).normalized;
+      modelBoneLengths[Joint.AnkleLeft] * 1.1f * (GetJoint(Joint.AnkleLeft) - GetJoint(Joint.KneeLeft)).normalized;
 
     RightHipPoint.position = Hips.position +
       modelBoneLengths[Joint.HipRight] * (GetJoint(Joint.HipRight) - GetJoint(Joint.HipLeft)).normalized;
     RightKneePoint.position = RightHipPoint.position +
-      modelBoneLengths[Joint.KneeRight] * (GetJoint(Joint.KneeRight) - GetJoint(Joint.HipRight)).normalized;
+      modelBoneLengths[Joint.KneeRight] * 1.2f * (GetJoint(Joint.KneeRight) - GetJoint(Joint.HipRight)).normalized;
     RightAnklePoint.position = RightKneePoint.position +
-      modelBoneLengths[Joint.AnkleRight] * (GetJoint(Joint.AnkleRight) - GetJoint(Joint.KneeRight)).normalized;
+      modelBoneLengths[Joint.AnkleRight] * 1.1f * (GetJoint(Joint.AnkleRight) - GetJoint(Joint.KneeRight)).normalized;
+
+    //const float threshold = 1f;
+    //RaycastHit hit;
+    //if (Physics.Raycast(pos - HipOffset + Vector3.up * threshold, Vector3.down, out hit, threshold*2)) {
+      //pos.y = Mathf.SmoothDamp(pos.y, hit.point.y + HipOffset.y + 0.1f, ref GroundVelocity, 0.3f);
+      //pos.y = hit.point.y + HipOffset.y + 0.1f;
+    //}
+
+    transform.position = pos;
 
     animator.SetIKPosition(AvatarIKGoal.LeftHand, LeftWristPoint.position);
     animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1);
@@ -204,6 +219,16 @@ public class KinectRigAnimator : MonoBehaviour {
 
     animator.SetIKHintPosition(AvatarIKHint.RightKnee, RightKneePoint.position);
     animator.SetIKHintPositionWeight(AvatarIKHint.RightKnee, 0.5f);
+  }
+
+
+  void LateUpdate() {
+    LeftHand.transform.localRotation = Quaternion.identity;
+    RightHand.transform.localRotation = Quaternion.identity;
+
+    Spine.localRotation = Quaternion.FromToRotation(Vector3.up, (GetJoint(Joint.SpineMid) - GetJoint(Joint.SpineBase)).normalized);
+    Neck.localRotation = Quaternion.FromToRotation((GetJoint(Joint.SpineMid) - GetJoint(Joint.SpineBase)).normalized, (GetJoint(Joint.Head) - GetJoint(Joint.Neck)).normalized);
+    //Chest.localRotation = Quaternion.LookRotation((GetJoint(Joint.SpineShoulder) - GetJoint(Joint.SpineMid)).normalized);
   }
 
 
